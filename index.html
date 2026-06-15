@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KSU Allocation Score Calculator</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --surface: #ffffff;
+    --surface2: #f0f2f7;
+    --border: #dde1ea;
+    --text: #1a1d2e;
+    --text2: #5a5f7a;
+    --text3: #9197b3;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --accent-dark: #1e4fc2;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --danger: #dc2626;
+    --danger-light: #fff1f1;
+    --warning: #d97706;
+    --warning-light: #fffbeb;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  [data-theme="dark"] {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --surface2: #252840;
+    --border: #2e3250;
+    --text: #e8eaf6;
+    --text2: #9197b3;
+    --text3: #5a5f7a;
+    --accent: #4f7ef8;
+    --accent-light: #1a2240;
+    --accent-dark: #7ba3fb;
+    --success: #22c55e;
+    --success-light: #0a2018;
+    --danger: #f87171;
+    --danger-light: #2a0d0d;
+    --warning: #fbbf24;
+    --warning-light: #2a1f05;
+    --shadow: 0 2px 12px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* smooth theme transition on everything */
+  *, *::before, *::after {
+    transition:
+      background-color 0.4s ease,
+      border-color 0.4s ease,
+      color 0.4s ease,
+      box-shadow 0.4s ease,
+      fill 0.4s ease,
+      stroke 0.4s ease;
+  }
+  /* but keep interaction transitions snappy */
+  button, input, select, a {
+    transition:
+      background-color 0.4s ease,
+      border-color 0.4s ease,
+      color 0.4s ease,
+      transform 0.15s ease,
+      opacity 0.15s ease !important;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  [dir="rtl"] body {
+    font-family: 'Segoe UI', 'Tahoma', 'Arial', system-ui, sans-serif;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700; letter-spacing: -0.5px;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .logo-sub { font-size: 11px; color: var(--text3); font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* header right controls */
+  .header-controls { display: flex; align-items: center; gap: 8px; }
+
+  /* Language toggle */
+  .lang-btn {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .lang-btn:hover { background: var(--accent-light); }
+
+  /* Theme toggle — SVG icon button */
+  .theme-btn {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .theme-btn:hover { background: var(--accent-light); }
+  .theme-btn svg { width: 18px; height: 18px; display: block; }
+  /* sun rays & moon — color controlled by accent */
+  .theme-btn svg .icon-fill { fill: var(--accent); }
+  .theme-btn svg .icon-stroke { stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+  /* ── Main Layout ── */
+  main { max-width: 780px; margin: 0 auto; padding: 32px 20px 60px; }
+
+  /* ── Progress Bar ── */
+  .progress-wrap { margin-bottom: 32px; }
+  .progress-steps { display: flex; align-items: center; gap: 0; margin-bottom: 12px; }
+  .step-dot {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    flex: 1; position: relative; cursor: pointer;
+  }
+  .step-dot:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 16px; left: calc(50% + 16px); right: calc(-50% + 16px);
+    height: 2px; background: var(--border);
+  }
+  /* RTL Progress Line Fix */
+  [dir="rtl"] .step-dot:not(:last-child)::after {
+    right: calc(50% + 16px);
+    left: calc(-50% + 16px);
+  }
+  .step-dot.done:not(:last-child)::after { background: var(--accent); }
+  .dot-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: var(--text3);
+    position: relative; z-index: 1;
+  }
+  .step-dot.active .dot-circle { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .step-dot.done .dot-circle   { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .step-dot.done:hover .dot-circle { background: var(--accent); color: #fff; }
+  .dot-label { font-size: 11px; color: var(--text3); font-weight: 500; text-align: center; white-space: nowrap; }
+  .step-dot.active .dot-label { color: var(--accent); }
+  .step-dot.done .dot-label   { color: var(--text2); }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    box-shadow: var(--shadow);
+  }
+  .card-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; letter-spacing: -0.4px; }
+  .card-sub { font-size: 14px; color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
+
+  /* ── Page transitions ── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeUp 0.28s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Step 1 ── */
+  .count-control {
+    display: flex; align-items: center; gap: 0;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; width: fit-content; margin: 8px 0 24px;
+  }
+  .count-btn {
+    width: 44px; height: 44px; border: none; background: var(--surface2); color: var(--text);
+    font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-weight: 300;
+  }
+  .count-btn:hover { background: var(--accent-light); color: var(--accent); }
+  .count-display {
+    width: 64px; height: 44px; border: none;
+    border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    font-size: 18px; font-weight: 600; text-align: center; outline: none;
+  }
+  .count-display::-webkit-inner-spin-button,
+  .count-display::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* ── Step 2 ── */
+  .courses-grid {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-bottom: 24px; max-height: 420px; overflow-y: auto; padding-right: 4px;
+  }
+  [dir="rtl"] .courses-grid { padding-right: 0; padding-left: 4px; }
+  .courses-grid::-webkit-scrollbar { width: 4px; }
+  .courses-grid::-webkit-scrollbar-track { background: var(--surface2); border-radius: 4px; }
+  .courses-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .course-row { display: grid; grid-template-columns: 28px 1fr 100px 130px; gap: 10px; align-items: center; }
+  .course-num { font-size: 12px; font-weight: 600; color: var(--text3); text-align: center; }
+  .col-headers { display: grid; grid-template-columns: 28px 1fr 100px 130px; gap: 10px; margin-bottom: 6px; }
+  .col-hdr { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; }
+
+  .course-row input[type="text"],
+  .course-row input[type="number"],
+  .course-row select {
+    height: 38px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); font-size: 14px; padding: 0 10px;
+    outline: none; width: 100%;
+  }
+  .course-row input:focus, .course-row select:focus { border-color: var(--accent); }
+  .course-row select option { background: var(--surface); color: var(--text); }
+
+  /* ── Step 3 ── */
+  .score-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .score-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+  .score-field input {
+    width: 100%; height: 48px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); font-size: 22px; font-weight: 600;
+    padding: 0 14px; outline: none;
+  }
+  .score-field input:focus { border-color: var(--accent); }
+  .score-hint { font-size: 12px; color: var(--text3); margin-top: 5px; }
+
+  .formula-bar {
+    background: var(--accent-light); border: 1px solid var(--accent);
+    border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px;
+    font-size: 13px; color: var(--accent-dark);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  [data-theme="dark"] .formula-bar { color: var(--accent); }
+  .formula-bar span { font-weight: 600; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+  [dir="rtl"] .btn-row { justify-content: flex-start; flex-direction: row-reverse; }
+  .btn {
+    height: 42px; padding: 0 22px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600; cursor: pointer; border: none;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); color: var(--text); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── Results ── */
+  .result-hero {
+    text-align: center; padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border); margin-bottom: 24px;
+  }
+  .result-label { font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .result-score {
+    font-size: 64px; font-weight: 800; letter-spacing: -3px; line-height: 1; margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .result-out-of { font-size: 14px; color: var(--text3); margin-bottom: 20px; }
+  .score-breakdown { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+  .breakdown-pill {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 16px; font-size: 13px; color: var(--text2);
+  }
+  .breakdown-pill strong { color: var(--text); }
+
+  .result-meta { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+  .meta-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 16px; text-align: center; }
+  .meta-val { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+  .meta-lbl { font-size: 11px; color: var(--text3); font-weight: 500; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700; margin-bottom: 12px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .section-head .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--success); }
+  .dot-red   { background: var(--danger); }
+
+  .college-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+  .college-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+  }
+  .college-item:hover { border-color: var(--accent); background: var(--accent-light); }
+  .college-item.unavail:hover { border-color: var(--danger); background: var(--danger-light); }
+  .college-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .college-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .college-min { font-size: 12px; color: var(--text3); }
+  .badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .badge-green { background: var(--success-light); color: var(--success); }
+  .badge-red   { background: var(--danger-light);  color: var(--danger); }
+
+  .restart-wrap { text-align: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+  .err-msg { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
+  .copyright {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 32px;
+  letter-spacing: 0.5px;
+}
+  @media (max-width: 540px) {
+    .course-row { grid-template-columns: 22px 1fr 72px 105px; gap: 7px; }
+    .col-headers { grid-template-columns: 22px 1fr 72px 105px; gap: 7px; }
+    .score-inputs { grid-template-columns: 1fr; }
+    .result-meta { grid-template-columns: 1fr 1fr; }
+    main { padding: 20px 12px 40px; }
+    .card { padding: 20px 16px; }
+    .result-score { font-size: 52px; }
+    .header-controls { gap: 5px; }
+    .lang-btn { padding: 0 8px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">KSU</div>
+    <div>
+      <div class="logo-text" id="hLogoText">Allocation Calculator</div>
+      <div class="logo-sub" id="hLogoSub">King Saud University</div>
+    </div>
+  </div>
+  <div class="header-controls">
+    <!-- Language toggle -->
+    <button class="lang-btn" id="langBtn" title="Switch language">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="langLabel">عربي</span>
+    </button>
+    <!-- Theme toggle — SVG sun/moon -->
+    <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark mode">
+      <!-- Sun icon (shown in dark mode to switch to light) -->
+      <svg id="iconSun" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none">
+        <circle cx="12" cy="12" r="4" class="icon-fill"/>
+        <line x1="12" y1="2"  x2="12" y2="5"  class="icon-stroke"/>
+        <line x1="12" y1="19" x2="12" y2="22" class="icon-stroke"/>
+        <line x1="4.22" y1="4.22"   x2="6.34" y2="6.34"   class="icon-stroke"/>
+        <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" class="icon-stroke"/>
+        <line x1="2"  y1="12" x2="5"  y2="12" class="icon-stroke"/>
+        <line x1="19" y1="12" x2="22" y2="12" class="icon-stroke"/>
+        <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"   class="icon-stroke"/>
+        <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"   class="icon-stroke"/>
+      </svg>
+      <!-- Moon icon (shown in light mode to switch to dark) -->
+      <svg id="iconMoon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" class="icon-fill"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-steps" id="progressSteps">
+      <div class="step-dot active" id="sdot-0" onclick="jumpToStep(0)">
+        <div class="dot-circle">1</div>
+        <div class="dot-label" data-i18n="step1Label">Courses</div>
+      </div>
+      <div class="step-dot" id="sdot-1" onclick="jumpToStep(1)">
+        <div class="dot-circle">2</div>
+        <div class="dot-label" data-i18n="step2Label">Grades</div>
+      </div>
+      <div class="step-dot" id="sdot-2" onclick="jumpToStep(2)">
+        <div class="dot-circle">3</div>
+        <div class="dot-label" data-i18n="step3Label">Test Scores</div>
+      </div>
+      <div class="step-dot" id="sdot-3" onclick="jumpToStep(3)">
+        <div class="dot-circle">✓</div>
+        <div class="dot-label" data-i18n="step4Label">Results</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 0 -->
+  <div class="page active" id="page-0">
+    <div class="card">
+      <div class="card-title" data-i18n="p0Title">First-year courses</div>
+      <div class="card-sub"  data-i18n="p0Sub">How many courses did you take in your first year?</div>
+      <div class="count-control">
+        <button class="count-btn" id="decBtn">−</button>
+        <input class="count-display" type="number" id="courseCount" value="6" min="1" max="20">
+        <button class="count-btn" id="incBtn">+</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="goToGrades" data-i18n="p0Btn">Next — Enter Grades →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 1 -->
+  <div class="page" id="page-1">
+    <div class="card">
+      <div class="card-title" data-i18n="p1Title">Course grades</div>
+      <div class="card-sub"  data-i18n="p1Sub">Enter credit hours and grade for each course. Course name is optional.</div>
+      <div class="col-headers">
+        <div class="col-hdr">#</div>
+        <div class="col-hdr" data-i18n="colName">Course name (optional)</div>
+        <div class="col-hdr" data-i18n="colHrs">Credit hrs</div>
+        <div class="col-hdr" data-i18n="colGrade">Grade</div>
+      </div>
+      <div class="courses-grid" id="coursesGrid"></div>
+      <div id="gradesErr" class="err-msg" data-i18n="gradesErr">Please fill in credit hours and grade for all courses.</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="backToCount" data-i18n="backBtn">← Back</button>
+        <button class="btn btn-primary"   id="goToScores" data-i18n="p1Btn">Next — Test Scores →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page" id="page-2">
+    <div class="card">
+      <div class="card-title" data-i18n="p2Title">National test scores</div>
+      <div class="card-sub"  data-i18n="p2Sub">Enter your Qudrat and Tahsili scores (0 – 100).</div>
+      <div class="formula-bar">
+        📐 <span data-i18n="formulaLabel">Allocation Score</span> = (GPA × 10) + (Qudrat × 25%) + (Tahsili × 25%)
+      </div>
+      <div class="score-inputs">
+        <div class="score-field">
+          <label data-i18n="qudratLabel">Qudrat — Aptitude Test</label>
+          <input type="number" id="qudratScore" min="0" max="100" placeholder="e.g. 85">
+          <div class="score-hint" data-i18n="qudratHint">Out of 100 — counts 25%</div>
+        </div>
+        <div class="score-field">
+          <label data-i18n="tahsiliLabel">Tahsili — Achievement Test</label>
+          <input type="number" id="tahsiliScore" min="0" max="100" placeholder="e.g. 90">
+          <div class="score-hint" data-i18n="tahsiliHint">Out of 100 — counts 25%</div>
+        </div>
+      </div>
+      <div id="scoresErr" class="err-msg" data-i18n="scoresErr">Please enter valid scores between 0 and 100.</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="backToGrades" data-i18n="backBtn">← Back</button>
+        <button class="btn btn-primary"   id="calcBtn"     data-i18n="p2Btn">Calculate Results →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3 -->
+  <div class="page" id="page-3">
+    <div class="card">
+
+      <div class="result-hero">
+        <div class="result-label" data-i18n="resLabel">Allocation Score</div>
+        <div class="result-score" id="totalScore">—</div>
+        <div class="result-out-of" data-i18n="outOf">out of 100</div>
+        <div class="score-breakdown">
+          <div class="breakdown-pill"><span data-i18n="gpaComp">GPA component</span>: <strong id="gpaComp">—</strong>/50</div>
+          <div class="breakdown-pill"><span data-i18n="qudBreakdown">Qudrat</span>: <strong id="qudComp">—</strong>/25</div>
+          <div class="breakdown-pill"><span data-i18n="tahBreakdown">Tahsili</span>: <strong id="tahComp">—</strong>/25</div>
+        </div>
+      </div>
+
+      <div class="result-meta">
+        <div class="meta-card">
+          <div class="meta-val" id="gpaVal">—</div>
+          <div class="meta-lbl" data-i18n="gpaLbl">GPA (/ 5.0)</div>
+        </div>
+        <!-- تم إضافة كارد التقدير هنا -->
+        <div class="meta-card">
+          <div class="meta-val" id="gpaRank">—</div>
+          <div class="meta-lbl" data-i18n="rankLbl">Performance / التقدير</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-val" id="qudVal">—</div>
+          <div class="meta-lbl" data-i18n="qudLbl">Qudrat Score</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-val" id="tahVal">—</div>
+          <div class="meta-lbl" data-i18n="tahLbl">Tahsili Score</div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div class="dot dot-green"></div>
+        <span id="availHead"></span>
+      </div>
+      <div class="college-list" id="availList"></div>
+
+      <div class="section-head">
+        <div class="dot dot-red"></div>
+        <span id="unavailHead"></span>
+      </div>
+      <div class="college-list" id="unavailList"></div>
+
+      <div class="restart-wrap">
+        <button class="btn btn-secondary" id="restartBtn" data-i18n="restartBtn">↺ Start Over</button>
+      </div>
+    </div>
+  </div>
+<div class="copyright">
+  Copyright &copy; 2026 Youssef Almghraby
+</div>
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════
+   DATA
+══════════════════════════════════════════════════ */
+const GRADE_POINTS = {
+  'A+': 5.00, 'A': 4.75, 'A-': 4.50,
+  'B+': 4.25, 'B': 4.00, 'B-': 3.75,
+  'C+': 3.50, 'C': 3.00, 'C-': 2.75,
+  'D+': 2.50, 'D': 2.00, 'F': 0.00
+};
+
+const COLLEGES = [
+  { en: 'Mathematics Engineering',          ar: 'هندسة الرياضيات',                 min: 96.95 },
+  { en: 'Computer Science',                 ar: 'علوم الحاسب',                      min: 95.50 },
+  { en: 'Information Systems',              ar: 'نظم المعلومات',                    min: 94.10 },
+  { en: 'Computer Engineering',             ar: 'هندسة الحاسب',                     min: 92.70 },
+  { en: 'Engineering',                      ar: 'الهندسة',                          min: 88.85 },
+  { en: 'Electronic & Financial Mathematics',ar:'الرياضيات الإلكترونية والمالية',   min: 88.10 },
+  { en: 'Urban Planning & Design',          ar: 'التخطيط والتصميم العمراني',        min: 87.55 },
+  { en: 'Architecture & Building Science',  ar: 'عمارة وعلوم البناء',              min: 86.80 },
+  { en: 'Agricultural Engineering',         ar: 'الهندسة الزراعية',                 min: 85.35 },
+  { en: 'Statistics',                       ar: 'إحصاء',                            min: 84.30 },
+  { en: 'Operations Research',              ar: 'بحوث العمليات',                    min: 83.75 },
+  { en: 'Biophysics',                       ar: 'حيوفيزياء',                        min: 82.75 },
+  { en: 'Mathematics',                      ar: 'رياضيات',                          min: 81.60 },
+  { en: 'Applied Economics',                ar: 'الاقتصاد التطبيقي',               min: 78.55 },
+  { en: 'Physics',                          ar: 'فيزياء',                           min: 78.45 },
+  { en: 'Biochemistry',                     ar: 'كيمياء حيوية',                     min: 78.00 },
+  { en: 'Zoology',                          ar: 'حيوان',                            min: 75.30 },
+  { en: 'Chemistry',                        ar: 'كيمياء',                           min: 73.40 },
+  { en: 'Food Science & Human Nutrition',   ar: 'علوم الأغذية وتغذية الإنسان',     min: 72.90 },
+  { en: 'Microbiology',                     ar: 'الأحياء الدقيقة',                  min: 71.15 },
+  { en: 'Botany',                           ar: 'نبات',                             min: 70.00 },
+  { en: 'Animal Science',                   ar: 'علم الحيوان',                      min: 70.00 },
+  { en: 'Animal Production',                ar: 'الإنتاج الحيواني',                 min: 70.00 },
+  { en: 'Forest Production Science',        ar: 'علوم الإنتاج الغابي',              min: 70.00 },
+  { en: 'Plant Protection',                 ar: 'وقاية النبات',                     min: 70.00 },
+];
+
+/* ══════════════════════════════════════════════════
+   i18n
+══════════════════════════════════════════════════ */
+const STRINGS = {
+  en: {
+    hLogoText:'Allocation Calculator', hLogoSub:'King Saud University',
+    step1Label:'Courses', step2Label:'Grades', step3Label:'Test Scores', step4Label:'Results',
+    p0Title:'First-year courses', p0Sub:'How many courses did you take in your first year?',
+    p0Btn:'Next — Enter Grades →',
+    p1Title:'Course grades', p1Sub:'Enter credit hours and grade for each course. Course name is optional.',
+    p1Btn:'Next — Test Scores →',
+    colName:'Course name (optional)', colHrs:'Credit hrs', colGrade:'Grade',
+    gradesErr:'Please fill in credit hours and grade for all courses.',
+    backBtn:'← Back',
+    p2Title:'National test scores', p2Sub:'Enter your Qudrat and Tahsili scores (0 – 100).',
+    formulaLabel:'Allocation Score',
+    qudratLabel:'Qudrat — Aptitude Test', qudratHint:'Out of 100 — counts 25%',
+    tahsiliLabel:'Tahsili — Achievement Test', tahsiliHint:'Out of 100 — counts 25%',
+    scoresErr:'Please enter valid scores between 0 and 100.',
+    p2Btn:'Calculate Results →',
+    resLabel:'Allocation Score', outOf:'out of 100', gpaComp:'GPA component',
+    qudBreakdown:'Qudrat', tahBreakdown:'Tahsili',
+    gpaLbl:'GPA (/ 5.0)', qudLbl:'Qudrat Score', tahLbl:'Tahsili Score',
+    rankLbl:'Performance',
+    availHead:'Majors you qualify for', unavailHead:'Majors out of reach',
+    noAvail:'No majors available at this score.',
+    allAvail:'All majors are within reach!',
+    restartBtn:'↺ Start Over',
+    minLabel:'Min:', ptsLabel:'pts',
+    gradeSelect:'— Grade —',
+    courseNamePlaceholder:'Course name…',
+    hrsPlaceholder:'Hrs',
+    langLabel:'عربي',
+  },
+  ar: {
+    hLogoText:'حاسبة معدل التخصيص', hLogoSub:'جامعة الملك سعود',
+    step1Label:'المواد', step2Label:'التقديرات', step3Label:'نتائج الاختبارات', step4Label:'النتائج',
+    p0Title:'مواد السنة الأولى', p0Sub:'كم عدد المواد التي درستها في السنة الأولى؟',
+    p0Btn:'التالي — إدخال التقديرات ←',
+    p1Title:'تقديرات المواد', p1Sub:'أدخل الساعات المعتمدة والتقدير لكل مادة. اسم المادة اختياري.',
+    p1Btn:'التالي — نتائج الاختبارات ←',
+    colName:'اسم المادة (اختياري)', colHrs:'الساعات', colGrade:'التقدير',
+    gradesErr:'الرجاء إدخال الساعات والتقدير لجميع المواد.',
+    backBtn:'رجوع →',
+    p2Title:'نتائج الاختبارات الوطنية', p2Sub:'أدخل درجة القدرات والتحصيلي (0 – 100).',
+    formulaLabel:'معدل التخصيص',
+    qudratLabel:'اختبار القدرات', qudratHint:'من 100 — يحتسب 25%',
+    tahsiliLabel:'الاختبار التحصيلي', tahsiliHint:'من 100 — يحتسب 25%',
+    scoresErr:'الرجاء إدخال درجات صحيحة بين 0 و 100.',
+    p2Btn:'احسب النتائج ←',
+    resLabel:'معدل التخصيص', outOf:'من 100', gpaComp:'المعدل التراكمي',
+    qudBreakdown:'قدرات', tahBreakdown:'تحصيلي',
+    gpaLbl:'المعدل التراكمي (/ 5.0)', qudLbl:'درجة القدرات', tahLbl:'درجة التحصيلي',
+    rankLbl:'التقدير',
+    availHead:'التخصصات المتاحة', unavailHead:'التخصصات غير المتاحة',
+    noAvail:'لا توجد تخصصات متاحة بهذا المعدل.',
+    allAvail:'جميع التخصصات في المتناول!',
+    restartBtn:'↺ البدء من جديد',
+    minLabel:'الحد الأدنى:', ptsLabel:'نقطة',
+    gradeSelect:'— التقدير —',
+    courseNamePlaceholder:'اسم المادة…',
+    hrsPlaceholder:'الساعات',
+    langLabel:'English',
+  }
+};
+
+let lang = localStorage.getItem('ksu-lang') || 'en';
+
+function applyLang() {
+  const s = STRINGS[lang];
+  const isAr = lang === 'ar';
+  document.documentElement.lang = lang;
+  document.documentElement.dir  = isAr ? 'rtl' : 'ltr';
+  document.getElementById('langLabel').textContent = s.langLabel;
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (s[key] !== undefined) el.textContent = s[key];
+  });
+
+  // header
+  document.getElementById('hLogoText').textContent = s.hLogoText;
+  document.getElementById('hLogoSub').textContent  = s.hLogoSub;
+
+  // rebuild course rows preserving data
+  const grid = document.getElementById('coursesGrid');
+  if (grid.children.length) {
+    const prev = Array.from(grid.querySelectorAll('.course-row')).map(r => ({
+      name: r.querySelector('.cname').value,
+      hrs:  r.querySelector('.chrs').value,
+      grade:r.querySelector('.cgrade').value
+    }));
+    buildCourseRows(prev.length, prev);
+  }
+
+  // re-render results if on page 3
+  if (currentPage === 3) renderResults();
+}
+
+document.getElementById('langBtn').addEventListener('click', () => {
+  lang = lang === 'en' ? 'ar' : 'en';
+  localStorage.setItem('ksu-lang', lang);
+  applyLang();
+});
+
+/* ══════════════════════════════════════════════════
+   THEME
+══════════════════════════════════════════════════ */
+const themeBtn  = document.getElementById('themeBtn');
+const iconSun   = document.getElementById('iconSun');
+const iconMoon  = document.getElementById('iconMoon');
+
+const savedTheme = localStorage.getItem('ksu-theme') || 'light';
+setTheme(savedTheme, false);
+
+function setTheme(t, animate = true) {
+  if (!animate) {
+    document.documentElement.style.setProperty('--theme-transition', 'none');
+  }
+  document.documentElement.setAttribute('data-theme', t);
+  iconSun.style.display  = t === 'dark' ? 'block' : 'none';
+  iconMoon.style.display = t === 'dark' ? 'none'  : 'block';
+  localStorage.setItem('ksu-theme', t);
+  if (!animate) {
+    requestAnimationFrame(() => document.documentElement.style.removeProperty('--theme-transition'));
+  }
+}
+
+themeBtn.addEventListener('click', () => {
+  const cur  = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+});
+
+/* ══════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════ */
+let currentPage = 0;
+let maxReached  = 0;
+let state = {};
+
+function showPage(n) {
+  document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === n));
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.remove('active', 'done');
+    if (i < n) d.classList.add('done');
+    if (i === n) d.classList.add('active');
+  });
+  currentPage = n;
+  if (n > maxReached) maxReached = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function jumpToStep(n) {
+  if (n > maxReached) return; // can't jump ahead
+  if (n === currentPage) return;
+
+  // save current step data before jumping away
+  if (currentPage === 1) saveGradesState();
+  if (currentPage === 2) saveScoresState();
+
+  if (n === 0) { showPage(0); return; }
+  if (n === 1) { const cnt = parseInt(document.getElementById('courseCount').value)||6; buildCourseRows(cnt); showPage(1); return; }
+  if (n === 2) { showPage(2); return; }
+  if (n === 3 && state.courses && state.qudrat !== undefined) { renderResults(); showPage(3); return; }
+}
+
+function saveGradesState() {
+  const rows = document.querySelectorAll('#coursesGrid .course-row');
+  if (!rows.length) return;
+  const valid = Array.from(rows).every(r => r.querySelector('.chrs').value && r.querySelector('.cgrade').value);
+  if (valid) {
+    state.courses = Array.from(rows).map(r => ({
+      name:  r.querySelector('.cname').value,
+      hrs:   parseFloat(r.querySelector('.chrs').value),
+      grade: r.querySelector('.cgrade').value
+    }));
+  }
+}
+
+function saveScoresState() {
+  const q = parseFloat(document.getElementById('qudratScore').value);
+  const t = parseFloat(document.getElementById('tahsiliScore').value);
+  if (!isNaN(q) && q >= 0 && q <= 100) state.qudrat  = q;
+  if (!isNaN(t) && t >= 0 && t <= 100) state.tahsili = t;
+}
+
+/* ══════════════════════════════════════════════════
+   COURSE COUNT
+══════════════════════════════════════════════════ */
+const countInput = document.getElementById('courseCount');
+document.getElementById('decBtn').addEventListener('click', () => {
+  const v = parseInt(countInput.value) || 1;
+  if (v > 1) countInput.value = v - 1;
+});
+document.getElementById('incBtn').addEventListener('click', () => {
+  const v = parseInt(countInput.value) || 1;
+  if (v < 20) countInput.value = v + 1;
+});
+countInput.addEventListener('input', () => {
+  let v = parseInt(countInput.value);
+  if (isNaN(v) || v < 1) countInput.value = 1;
+  if (v > 20) countInput.value = 20;
+});
+
+document.getElementById('goToGrades').addEventListener('click', () => {
+  const n = parseInt(countInput.value) || 6;
+  buildCourseRows(n);
+  showPage(1);
+});
+
+/* ══════════════════════════════════════════════════
+   BUILD COURSE ROWS
+══════════════════════════════════════════════════ */
+function buildCourseRows(n, prevData) {
+  const s    = STRINGS[lang];
+  const grid = document.getElementById('coursesGrid');
+  const prev = prevData || Array.from(grid.querySelectorAll('.course-row')).map(r => ({
+    name:  r.querySelector('.cname').value,
+    hrs:   r.querySelector('.chrs').value,
+    grade: r.querySelector('.cgrade').value
+  }));
+  grid.innerHTML = '';
+
+  // update col headers
+  ['colName','colHrs','colGrade'].forEach(key => {
+    const els = document.querySelectorAll(`[data-i18n="${key}"]`);
+    els.forEach(el => el.textContent = s[key]);
+  });
+
+  for (let i = 0; i < n; i++) {
+    const row = document.createElement('div');
+    row.className = 'course-row';
+    const p = prev[i] || {};
+    const gradeOpts = Object.keys(GRADE_POINTS).map(g =>
+      `<option value="${g}" ${p.grade === g ? 'selected' : ''}>${g}</option>`
+    ).join('');
+    row.innerHTML = `
+      <div class="course-num">${i + 1}</div>
+      <input class="cname" type="text" placeholder="${s.courseNamePlaceholder}" value="${p.name || ''}">
+      <input class="chrs" type="number" min="1" max="10" placeholder="${s.hrsPlaceholder}" value="${p.hrs || ''}">
+      <select class="cgrade">
+        <option value="">${s.gradeSelect}</option>
+        ${gradeOpts}
+      </select>
+    `;
+    grid.appendChild(row);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   GRADES → SCORES
+══════════════════════════════════════════════════ */
+document.getElementById('backToCount').addEventListener('click', () => showPage(0));
+
+document.getElementById('goToScores').addEventListener('click', () => {
+  const rows  = document.querySelectorAll('#coursesGrid .course-row');
+  const errEl = document.getElementById('gradesErr');
+  let valid = true;
+  rows.forEach(r => {
+    if (!r.querySelector('.chrs').value || !r.querySelector('.cgrade').value) valid = false;
+  });
+  if (!valid) { errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  state.courses = Array.from(rows).map(r => ({
+    name:  r.querySelector('.cname').value,
+    hrs:   parseFloat(r.querySelector('.chrs').value),
+    grade: r.querySelector('.cgrade').value
+  }));
+  // restore saved scores
+  if (state.qudrat  !== undefined) document.getElementById('qudratScore').value  = state.qudrat;
+  if (state.tahsili !== undefined) document.getElementById('tahsiliScore').value = state.tahsili;
+  showPage(2);
+});
+
+/* ══════════════════════════════════════════════════
+   SCORES → RESULTS
+══════════════════════════════════════════════════ */
+document.getElementById('backToGrades').addEventListener('click', () => showPage(1));
+
+document.getElementById('calcBtn').addEventListener('click', () => {
+  const q    = parseFloat(document.getElementById('qudratScore').value);
+  const t    = parseFloat(document.getElementById('tahsiliScore').value);
+  const errEl = document.getElementById('scoresErr');
+  if (isNaN(q)||isNaN(t)||q<0||q>100||t<0||t>100) { errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  state.qudrat  = q;
+  state.tahsili = t;
+
+  const totalPts = state.courses.reduce((s,c) => s + GRADE_POINTS[c.grade]*c.hrs, 0);
+  const totalHrs = state.courses.reduce((s,c) => s + c.hrs, 0);
+  state.gpa   = totalPts / totalHrs;
+  state.gpaC  = state.gpa * 10;
+  state.qudC  = q * 0.25;
+  state.tahC  = t * 0.25;
+  state.total = state.gpaC + state.qudC + state.tahC;
+
+  renderResults();
+  showPage(3);
+});
+
+/* ══════════════════════════════════════════════════
+   RENDER RESULTS
+══════════════════════════════════════════════════ */
+function renderResults() {
+  if (state.total === undefined) return;
+  const s   = STRINGS[lang];
+  const col = lang === 'ar' ? 'ar' : 'en';
+
+  document.getElementById('totalScore').textContent = state.total.toFixed(2);
+  document.getElementById('gpaComp').textContent    = state.gpaC.toFixed(2);
+  document.getElementById('qudComp').textContent    = state.qudC.toFixed(2);
+  document.getElementById('tahComp').textContent    = state.tahC.toFixed(2);
+  document.getElementById('gpaVal').textContent     = state.gpa.toFixed(2);
+  document.getElementById('qudVal').textContent     = state.qudrat.toFixed(1);
+  document.getElementById('tahVal').textContent     = state.tahsili.toFixed(1);
+
+  // تحديث نصوص اللغات
+  document.querySelector('[data-i18n="gpaComp"]').textContent = s.gpaComp;
+  document.querySelector('[data-i18n="qudBreakdown"]').textContent = s.qudBreakdown;
+  document.querySelector('[data-i18n="tahBreakdown"]').textContent = s.tahBreakdown;
+  document.querySelector('[data-i18n="rankLbl"]').textContent = s.rankLbl;
+
+  // منطق احتساب التقدير (Rank Logic)
+  let gpa = state.gpa;
+  let rankEn = "";
+  let rankAr = "";
+  let rankColor = "";
+
+  if (gpa < 2.00) {
+    rankEn = "Failed"; rankAr = "متعثر";
+    rankColor = "var(--danger)"; // لون أحمر
+  } else if (gpa < 3.24) {
+    rankEn = "Expected to fail"; rankAr = "متوقع تعثره";
+    rankColor = "#eab308"; // لون أصفر
+  } else if (gpa < 4.24) {
+    rankEn = "Good"; rankAr = "مثابر";
+    rankColor = "#f97316"; // لون برتقالي
+  } else if (gpa < 4.74) {
+    rankEn = "Very Good"; rankAr = "متفوق";
+    rankColor = "#8b5cf6"; // لون بنفسجي
+  } else {
+    rankEn = "Excellent"; rankAr = "متميز";
+    rankColor = "var(--success)"; // لون أخضر
+  }
+
+  const rankEl = document.getElementById('gpaRank');
+  rankEl.textContent = lang === 'ar' ? rankAr : rankEn;
+  rankEl.style.color = rankColor;
+
+  const avail   = COLLEGES.filter(c => state.total >= c.min);
+  const unavail = COLLEGES.filter(c => state.total <  c.min);
+
+  document.getElementById('availHead').textContent   = `${s.availHead} (${avail.length})`;
+  document.getElementById('unavailHead').textContent = `${s.unavailHead} (${unavail.length})`;
+
+  function renderList(items, containerId, mode) {
+    const el = document.getElementById(containerId);
+    if (!items.length) {
+      el.innerHTML = `<div style="font-size:13px;color:var(--text3);padding:10px 0;">${
+        mode==='avail' ? s.noAvail : s.allAvail
+      }</div>`;
+      return;
+    }
+    el.innerHTML = items.map(c => {
+      const diff    = state.total - c.min;
+      const absDiff = Math.abs(diff).toFixed(2);
+      const badge   = mode === 'avail'
+        ? `<span class="badge badge-green">+${absDiff} ${s.ptsLabel}</span>`
+        : `<span class="badge badge-red">−${absDiff} ${s.ptsLabel}</span>`;
+      return `
+        <div class="college-item ${mode==='avail'?'':'unavail'}">
+          <div class="college-name">${c[col]}</div>
+          <div class="college-right">
+            <span class="college-min">${s.minLabel} ${c.min.toFixed(2)}</span>
+            ${badge}
+          </div>
+        </div>`;
+    }).join('');
+  }
+  renderList(avail,   'availList',   'avail');
+  renderList(unavail, 'unavailList', 'unavail');
+}
+
+/* ══════════════════════════════════════════════════
+   RESTART
+══════════════════════════════════════════════════ */
+document.getElementById('restartBtn').addEventListener('click', () => {
+  state = {}; maxReached = 0;
+  document.getElementById('courseCount').value   = 6;
+  document.getElementById('qudratScore').value   = '';
+  document.getElementById('tahsiliScore').value  = '';
+  document.getElementById('coursesGrid').innerHTML = '';
+  showPage(0);
+});
+
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+applyLang();
+</script>
+</body>
+</html>
