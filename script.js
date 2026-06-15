@@ -3,11 +3,24 @@
    DATA
 ══════════════════════════════════════════════════ */
 const GRADE_POINTS = {
-  'A+': 5.00, 'A': 4.75, 'A-': 4.50,
-  'B+': 4.25, 'B': 4.00, 'B-': 3.75,
-  'C+': 3.50, 'C': 3.00, 'C-': 2.75,
-  'D+': 2.50, 'D': 2.00, 'F': 0.00
+  'A+': 5.00, 'A': 4.75,
+  'B+': 4.50, 'B': 4.00,
+  'C+': 3.50, 'C': 3.00,
+  'D+': 2.50, 'D': 2.00, 'F': 1.00
 };
+
+const DEFAULT_10_COURSES = [
+  { name: 'Engl 106', hrs: 6 },
+  { name: 'Math 101', hrs: 3 },
+  { name: 'Tech 101', hrs: 3 },
+  { name: 'Arb 100', hrs: 2 },
+  { name: 'Ryd 101', hrs: 1 },
+  { name: 'Engl 113', hrs: 6 },
+  { name: 'Chem 101', hrs: 4 },
+  { name: 'Stat 101', hrs: 3 },
+  { name: 'Nhj 101', hrs: 3 },
+  { name: 'Fjp 101', hrs: 1 }
+];
 
 const COLLEGES = [
   { en: 'Software Engineering',             ar: 'هندسة البرمجيات',                 min: 96.95 },
@@ -70,6 +83,7 @@ const STRINGS = {
     courseNamePlaceholder:'Course name…',
     hrsPlaceholder:'Hrs',
     langLabel:'عربي',
+    p0Note:'Note: The default number of first-year courses is 10.',
   },
   ar: {
     hLogoText:'حاسبة معدل التخصيص', hLogoSub:'جامعة الملك سعود',
@@ -100,6 +114,7 @@ const STRINGS = {
     courseNamePlaceholder:'اسم المادة…',
     hrsPlaceholder:'الساعات',
     langLabel:'English',
+    p0Note:'ملاحظة: عدد مواد السنة الأولى الافتراضي هو 10 مواد.',
   }
 };
 
@@ -198,7 +213,7 @@ function jumpToStep(n) {
   if (currentPage === 2) saveScoresState();
 
   if (n === 0) { showPage(0); return; }
-  if (n === 1) { const cnt = parseInt(document.getElementById('courseCount').value)||6; buildCourseRows(cnt); showPage(1); return; }
+  if (n === 1) { const cnt = parseInt(document.getElementById('courseCount').value)||10; buildCourseRows(cnt); showPage(1); return; }
   if (n === 2) { showPage(2); return; }
   if (n === 3 && state.courses && state.qudrat !== undefined) { renderResults(); showPage(3); return; }
 }
@@ -242,7 +257,7 @@ countInput.addEventListener('input', () => {
 });
 
 document.getElementById('goToGrades').addEventListener('click', () => {
-  const n = parseInt(countInput.value) || 6;
+  const n = parseInt(countInput.value) || 10;
   buildCourseRows(n);
   showPage(1);
 });
@@ -269,7 +284,13 @@ function buildCourseRows(n, prevData) {
   for (let i = 0; i < n; i++) {
     const row = document.createElement('div');
     row.className = 'course-row';
-    const p = prev[i] || {};
+    let p = prev[i] || {};
+
+    if (!prevData && n >= 10 && i < 10) {
+      p.name = p.name || DEFAULT_10_COURSES[i].name;
+      p.hrs = p.hrs || DEFAULT_10_COURSES[i].hrs;
+    }
+
     const gradeOpts = Object.keys(GRADE_POINTS).map(g =>
       `<option value="${g}" ${p.grade === g ? 'selected' : ''}>${g}</option>`
     ).join('');
@@ -425,7 +446,7 @@ function renderResults() {
 ══════════════════════════════════════════════════ */
 document.getElementById('restartBtn').addEventListener('click', () => {
   state = {}; maxReached = 0;
-  document.getElementById('courseCount').value   = 6;
+  document.getElementById('courseCount').value   = 10;
   document.getElementById('qudratScore').value   = '';
   document.getElementById('tahsiliScore').value  = '';
   document.getElementById('coursesGrid').innerHTML = '';
