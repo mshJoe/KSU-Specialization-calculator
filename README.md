@@ -34,7 +34,7 @@ Since this project is built using vanilla web technologies, no complex build too
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/mshJoe/KSU-Specialization-calculator.git](https://github.com/mshJoe/KSU-Specialization-calculator.git)
+    git clone https://github.com/mshJoe/KSU-Specialization-calculator.git
     ```
 2.  **Navigate to the project directory:**
     ```bash
