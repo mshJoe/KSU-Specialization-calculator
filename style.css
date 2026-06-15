@@ -322,6 +322,20 @@
   margin-top: 32px;
   letter-spacing: 0.5px;
 }
+/* إعدادات اللوجو للوضع الفاتح والداكن */
+.logo-dark-img {
+  display: none;
+}
+.logo-light-img {
+  display: block;
+}
+
+[data-theme="dark"] .logo-light-img {
+  display: none;
+}
+[data-theme="dark"] .logo-dark-img {
+  display: block;
+}
   @media (max-width: 540px) {
     .course-row { grid-template-columns: 22px 1fr 72px 105px; gap: 7px; }
     .col-headers { grid-template-columns: 22px 1fr 72px 105px; gap: 7px; }

@@ -42,7 +42,7 @@ const COLLEGES = [
 ══════════════════════════════════════════════════ */
 const STRINGS = {
   en: {
-    hLogoText:'Allocation Calculator', hLogoSub:'King Saud University',
+    hLogoText:'Specialization Calculator', hLogoSub:'King Saud University',
     step1Label:'Courses', step2Label:'Grades', step3Label:'Test Scores', step4Label:'Results',
     p0Title:'First-year courses', p0Sub:'How many courses did you take in your first year?',
     p0Btn:'Next — Enter Grades →',
@@ -52,12 +52,12 @@ const STRINGS = {
     gradesErr:'Please fill in credit hours and grade for all courses.',
     backBtn:'← Back',
     p2Title:'National test scores', p2Sub:'Enter your Qudrat and Tahsili scores (0 – 100).',
-    formulaLabel:'Allocation Score',
+    formulaLabel:'Specialization Score',
     qudratLabel:'Qudrat — Aptitude Test', qudratHint:'Out of 100 — counts 25%',
     tahsiliLabel:'Tahsili — Achievement Test', tahsiliHint:'Out of 100 — counts 25%',
     scoresErr:'Please enter valid scores between 0 and 100.',
     p2Btn:'Calculate Results →',
-    resLabel:'Allocation Score', outOf:'out of 100', gpaComp:'GPA component',
+    resLabel:'Specialization Score', outOf:'out of 100', gpaComp:'GPA component',
     qudBreakdown:'Qudrat', tahBreakdown:'Tahsili',
     gpaLbl:'GPA (/ 5.0)', qudLbl:'Qudrat Score', tahLbl:'Tahsili Score',
     rankLbl:'Performance',

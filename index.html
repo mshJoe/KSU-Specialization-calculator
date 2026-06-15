@@ -3,16 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KSU Allocation Score Calculator</title>
+<title>KSU Specialization Score Calculator</title>
 <link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="icon.png">
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <div class="logo-icon">KSU</div>
+    <div class="logo-icon" style="background: transparent;">
+      <!-- اللوجو الأزرق للوضع الفاتح -->
+      <img src="Blue KSU logo new.png" alt="KSU Logo" class="logo-light-img" style="width: 100%; height: 100%; object-fit: contain;">
+      <!-- اللوجو الأبيض للوضع الداكن -->
+      <img src="White KSU logo new.png" alt="KSU Logo" class="logo-dark-img" style="width: 100%; height: 100%; object-fit: contain;">
+    </div>
     <div>
-      <div class="logo-text" id="hLogoText">Allocation Calculator</div>
+      <div class="logo-text" id="hLogoText">Specialization Calculator</div>
       <div class="logo-sub" id="hLogoSub">King Saud University</div>
     </div>
   </div>
@@ -109,7 +115,7 @@
       <div class="card-title" data-i18n="p2Title">National test scores</div>
       <div class="card-sub"  data-i18n="p2Sub">Enter your Qudrat and Tahsili scores (0 – 100).</div>
       <div class="formula-bar">
-        📐 <span data-i18n="formulaLabel">Allocation Score</span> = (GPA × 10) + (Qudrat × 25%) + (Tahsili × 25%)
+        📐 <span data-i18n="formulaLabel">Specialization Score</span> = (GPA × 10) + (Qudrat × 25%) + (Tahsili × 25%)
       </div>
       <div class="score-inputs">
         <div class="score-field">
@@ -136,7 +142,7 @@
     <div class="card">
 
       <div class="result-hero">
-        <div class="result-label" data-i18n="resLabel">Allocation Score</div>
+        <div class="result-label" data-i18n="resLabel">Specialization Score</div>
         <div class="result-score" id="totalScore">—</div>
         <div class="result-out-of" data-i18n="outOf">out of 100</div>
         <div class="score-breakdown">
